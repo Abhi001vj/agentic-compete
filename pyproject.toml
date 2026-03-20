@@ -1,0 +1,48 @@
+[project]
+name = "agentic-compete"
+version = "0.1.0"
+description = "Agentic framework for Kaggle competitions — powered by Claude + Google Colab MCP"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Abhilash"}]
+
+dependencies = [
+    "anthropic>=0.40.0",
+    "langgraph>=0.2.0",
+    "langchain-core>=0.3.0",
+    "kaggle>=1.6.0",
+    "pyyaml>=6.0",
+    "pydantic>=2.0",
+    "rich>=13.0",
+    "click>=8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.5.0",
+    "mypy>=1.10",
+]
+
+[project.scripts]
+agentic-compete = "scripts.run_competition:main"
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[tool.setuptools.packages.find]
+include = ["core*", "agents*", "colab*", "kaggle*", "strategies*", "scripts*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

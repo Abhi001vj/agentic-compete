@@ -1,0 +1,137 @@
+# Model Registry — defines model tiers, defaults, and Optuna search spaces
+# Used by ModelAgent and TuningAgent to select and configure models.
+
+tiers:
+  baseline:
+    description: "Quick models with minimal tuning. Establishes performance floor."
+    max_training_time_min: 5
+    models:
+      # --- Classification ---
+      - name: LogisticRegression
+        task: classification
+        import: "from sklearn.linear_model import LogisticRegression"
+        init: "LogisticRegression(max_iter=1000, C=1.0, random_state=42)"
+
+      - name: RidgeClassifier
+        task: classification
+        import: "from sklearn.linear_model import RidgeClassifier"
+        init: "RidgeClassifier(alpha=1.0, random_state=42)"
+
+      - name: RandomForest
+        task: classification
+        import: "from sklearn.ensemble import RandomForestClassifier"
+        init: "RandomForestClassifier(n_estimators=200, max_depth=10, min_samples_split=5, random_state=42, n_jobs=-1)"
+
+      - name: XGBoost_default
+        task: classification
+        import: "from xgboost import XGBClassifier"
+        init: "XGBClassifier(n_estimators=200, max_depth=6, learning_rate=0.1, random_state=42, n_jobs=-1, verbosity=0)"
+
+      # --- Regression ---
+      - name: Ridge_Regression
+        task: regression
+        import: "from sklearn.linear_model import Ridge"
+        init: "Ridge(alpha=1.0)"
+
+      - name: RandomForest_Reg
+        task: regression
+        import: "from sklearn.ensemble import RandomForestRegressor"
+        init: "RandomForestRegressor(n_estimators=200, max_depth=10, random_state=42, n_jobs=-1)"
+
+      - name: XGBoost_Reg_default
+        task: regression
+        import: "from xgboost import XGBRegressor"
+        init: "XGBRegressor(n_estimators=200, max_depth=6, learning_rate=0.1, random_state=42, n_jobs=-1, verbosity=0)"
+
+  medium:
+    description: "Tuned GBMs with sensible hyperparameters. Main workhorse tier."
+    max_training_time_min: 30
+    models:
+      - name: LightGBM
+        task: classification
+        import: "from lightgbm import LGBMClassifier"
+        init: "LGBMClassifier(n_estimators=500, learning_rate=0.05, max_depth=7, num_leaves=63, subsample=0.8, colsample_bytree=0.8, reg_alpha=0.1, reg_lambda=1.0, random_state=42, verbosity=-1, n_jobs=-1)"
+
+      - name: CatBoost
+        task: classification
+        import: "from catboost import CatBoostClassifier"
+        init: "CatBoostClassifier(iterations=500, learning_rate=0.05, depth=7, l2_leaf_reg=3.0, random_seed=42, verbose=0)"
+
+      - name: XGBoost_tuned
+        task: classification
+        import: "from xgboost import XGBClassifier"
+        init: "XGBClassifier(n_estimators=500, max_depth=7, learning_rate=0.05, subsample=0.8, colsample_bytree=0.8, reg_alpha=0.1, reg_lambda=1.0, gamma=0.1, min_child_weight=3, random_state=42, n_jobs=-1, verbosity=0)"
+
+      - name: LightGBM_Reg
+        task: regression
+        import: "from lightgbm import LGBMRegressor"
+        init: "LGBMRegressor(n_estimators=500, learning_rate=0.05, max_depth=7, num_leaves=63, subsample=0.8, colsample_bytree=0.8, random_state=42, verbosity=-1, n_jobs=-1)"
+
+      - name: CatBoost_Reg
+        task: regression
+        import: "from catboost import CatBoostRegressor"
+        init: "CatBoostRegressor(iterations=500, learning_rate=0.05, depth=7, random_seed=42, verbose=0)"
+
+  complex:
+    description: "Optuna-tuned models and stacking ensembles. Maximum extraction."
+    max_training_time_min: 120
+    models:
+      - name: XGBoost_optuna
+        task: classification
+        type: optuna
+        search_space:
+          n_estimators: {type: int, low: 200, high: 2000}
+          max_depth: {type: int, low: 3, high: 12}
+          learning_rate: {type: float, low: 0.005, high: 0.3, log: true}
+          subsample: {type: float, low: 0.5, high: 1.0}
+          colsample_bytree: {type: float, low: 0.3, high: 1.0}
+          reg_alpha: {type: float, low: 1.0e-8, high: 10.0, log: true}
+          reg_lambda: {type: float, low: 1.0e-8, high: 10.0, log: true}
+          gamma: {type: float, low: 0.0, high: 5.0}
+          min_child_weight: {type: int, low: 1, high: 20}
+        n_trials: 100
+        timeout_sec: 1800
+
+      - name: LightGBM_optuna
+        task: classification
+        type: optuna
+        search_space:
+          n_estimators: {type: int, low: 200, high: 2000}
+          max_depth: {type: int, low: 3, high: 12}
+          learning_rate: {type: float, low: 0.005, high: 0.3, log: true}
+          num_leaves: {type: int, low: 15, high: 255}
+          subsample: {type: float, low: 0.5, high: 1.0}
+          colsample_bytree: {type: float, low: 0.3, high: 1.0}
+          reg_alpha: {type: float, low: 1.0e-8, high: 10.0, log: true}
+          reg_lambda: {type: float, low: 1.0e-8, high: 10.0, log: true}
+          min_child_samples: {type: int, low: 5, high: 100}
+        n_trials: 100
+        timeout_sec: 1800
+
+      - name: Stacking
+        task: both
+        type: stacking
+        meta_learner: "LogisticRegression(max_iter=1000)"
+        base_models_from_top_n: 5
+
+# Metric mapping for sklearn cross_val_score
+metric_mapping:
+  auc: roc_auc
+  roc_auc: roc_auc
+  accuracy: accuracy
+  f1: f1
+  f1_weighted: f1_weighted
+  f1_macro: f1_macro
+  log_loss: neg_log_loss
+  rmse: neg_root_mean_squared_error
+  mae: neg_mean_absolute_error
+  r2: r2
+  mse: neg_mean_squared_error
+  mape: neg_mean_absolute_percentage_error
+
+# Escalation rules
+escalation:
+  patience: 3                    # Consecutive models without improvement before escalating
+  min_improvement_pct: 0.1       # Minimum % improvement to consider progress
+  max_feature_eng_rounds: 3      # Max times to try feature engineering per tier
+  max_total_iterations: 30       # Hard cap on total iterations

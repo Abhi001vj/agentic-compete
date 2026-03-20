@@ -1,0 +1,38 @@
+# AgenticCompete Global Settings
+
+# LLM Configuration
+llm:
+  model: "claude-sonnet-4-20250514"        # For agent reasoning
+  model_complex: "claude-opus-4-20250514"  # For complex decisions (strategy, reflection)
+  max_tokens: 4096
+  temperature: 0.2                          # Low temp for reproducibility
+
+# Colab MCP
+colab:
+  mcp_server: "colab-mcp"
+  cell_execution_timeout: 300    # seconds per cell
+  training_timeout: 1800         # 30 min for training cells
+  setup_timeout: 600             # 10 min for environment setup
+  max_retries: 3                 # Auto-retry failed cells
+
+# Kaggle
+kaggle:
+  data_dir: "/content/data"
+  models_dir: "/content/models"
+  submissions_dir: "/content/submissions"
+  plots_dir: "/content/plots"
+  max_submissions_per_day: 5
+
+# Pipeline
+pipeline:
+  max_runtime_hours: 8
+  max_iterations: 30
+  cv_folds: 5
+  random_seed: 42
+
+# Logging
+logging:
+  level: INFO
+  save_reasoning_log: true
+  save_model_results: true
+  output_dir: "./output"
